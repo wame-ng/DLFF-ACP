@@ -7,6 +7,7 @@ import pandas as pd
 from keras import optimizers
 from keras.layers import Dense, Input, Dropout
 from keras.layers import Conv1D, MaxPooling1D, Embedding, Flatten
+from keras.models import load_model
 from keras.models import Model
 
 
@@ -199,40 +200,9 @@ test_encodding_cksaagp = pd.DataFrame(test_encodding_cksaagp)
 test_encodding_cksaagp = np.array(test_encodding_cksaagp)
 
 
-def DLFF_ACP(train, test, train_cksaagp, test_cksaagp):
-    nbf = 32
-    flen = 16
-    ndrop = 0.2
-    nbatch = 29
-    nepochs = 8
-    npooling = 8
-    train_label = lab_train()
+def DLFF_ACP(test,test_cksaagp):
     test_label = lab_test()
-
-    fea_input = Input(shape=(150,))
-    fea_cnn3 = Dense(128, activation='relu')(fea_input)
-    fea_cnn3 = Dropout(ndrop)(fea_cnn3)
-    fea_cnn3 = Dense(64, activation='relu')(fea_cnn3)
-
-    embedding_layer = Embedding(21,
-                                128,
-                                input_length=seq_length,
-                                )
-    sequence_input = Input(shape=(seq_length,), dtype='int32')
-    embedded_sequences = embedding_layer(sequence_input)
-    cnn3 = Conv1D(filters=nbf, kernel_size=flen, padding='same', activation='relu')(embedded_sequences)
-    cnn3 = MaxPooling1D(pool_size=npooling)(cnn3)
-    cnn3 = Flatten()(cnn3)
-    cnn3 = Dense(64, activation='relu')(cnn3)
-    con = concatenate([cnn3, fea_cnn3], axis=-1)
-    con = Dense(64, activation='relu')(con)
-    preds = Dense(1, activation='sigmoid')(con)
-    model = Model([fea_input, sequence_input], preds)
-    adam = optimizers.Adam(lr=0.001)
-    model.compile(loss='binary_crossentropy',
-                  optimizer=adam,
-                  metrics=['accuracy'])
-    model.fit([train_cksaagp, train], np.array(train_label), epochs=nepochs, batch_size=nbatch, verbose=1)
+    model = load_model('./model/imbalance_dataset_model.h5') 
     preds = model.predict([test_cksaagp, test])
     pred_class = np.rint(preds)
     acc, precision, sensitivity, specificity, MCC = model_performace(len(test_label), pred_class, test_label)
@@ -240,7 +210,7 @@ def DLFF_ACP(train, test, train_cksaagp, test_cksaagp):
     print(acc, precision, sensitivity, specificity, MCC, roc)
 
 
-DLFF_ACP(X_train, X_test, train_encodding_cksaagp[1:, 1:], test_encodding_cksaagp[1:, 1:])
+DLFF_ACP(X_test,test_encodding_cksaagp[1:, 1:])
 
 
 
